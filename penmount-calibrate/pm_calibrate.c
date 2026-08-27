@@ -116,24 +116,25 @@ static int
 pm_solve3x3 (double A[3][3], double b[3], double x[3])
 {
     double M[3][4];
-    int i, j;
+    double t, f;
+    int i, j, col, row, j2, pivot;
 
     for (i = 0; i < 3; i++) {
         for (j = 0; j < 3; j++) M[i][j] = A[i][j];
         M[i][3] = b[i];
     }
-    for (int col = 0; col < 3; col++) {
-        int pivot = col;
-        for (int row = col + 1; row < 3; row++)
+    for (col = 0; col < 3; col++) {
+        pivot = col;
+        for (row = col + 1; row < 3; row++)
             if (M[row][col] * M[row][col] > M[pivot][col] * M[pivot][col]) pivot = row;
         if (pivot != col)
-            for (int j2 = 0; j2 < 4; j2++) {
-                double t = M[col][j2]; M[col][j2] = M[pivot][j2]; M[pivot][j2] = t;
+            for (j2 = 0; j2 < 4; j2++) {
+                t = M[col][j2]; M[col][j2] = M[pivot][j2]; M[pivot][j2] = t;
             }
         if (M[col][col] * M[col][col] < 1e-20) return 0;
-        for (int row = col + 1; row < 3; row++) {
-            double f = M[row][col] / M[col][col];
-            for (int j2 = col; j2 < 4; j2++) M[row][j2] -= f * M[col][j2];
+        for (row = col + 1; row < 3; row++) {
+            f = M[row][col] / M[col][col];
+            for (j2 = col; j2 < 4; j2++) M[row][j2] -= f * M[col][j2];
         }
     }
     for (i = 2; i >= 0; i--) {
@@ -272,7 +273,7 @@ pm_open_xinput_device (const char *name_prefix)
         return FALSE;
     }
 
-    if (XSelectExtensionEvent (ctx.dpy, GDK_WINDOW_XID (gtk_widget_get_window (ctx.window)),
+    if (XSelectExtensionEvent (ctx.dpy, GDK_WINDOW_XID (ctx.window->window),
                                classes, n_classes) != Success) {
         g_printerr ("pm_calibrate: XSelectExtensionEvent failed.\n");
         XCloseDevice (ctx.dpy, ctx.xdev);
@@ -397,7 +398,7 @@ pm_compute_and_save (void)
 static gboolean
 pm_on_expose (GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
-    cairo_t *cr = gdk_cairo_create (gtk_widget_get_window (widget));
+    cairo_t *cr = gdk_cairo_create (widget->window);
     double tx, ty;
     int sx, sy;
     char buf[64];
@@ -437,7 +438,7 @@ pm_on_expose (GtkWidget *widget, GdkEventExpose *event, gpointer data)
 static gboolean
 pm_on_key (GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-    if (event->keyval == GDK_KEY_Escape) {
+    if (event->keyval == GDK_Escape) {
         ctx.aborted = TRUE;
         gtk_main_quit ();
         return TRUE;
@@ -448,7 +449,7 @@ pm_on_key (GtkWidget *widget, GdkEventKey *event, gpointer data)
 static void
 pm_on_realize (GtkWidget *widget, gpointer data)
 {
-    gdk_window_add_filter (gtk_widget_get_window (widget), pm_event_filter, NULL);
+    gdk_window_add_filter (widget->window, pm_event_filter, NULL);
 }
 
 int

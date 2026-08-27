@@ -10,7 +10,6 @@ CC     = gcc
 AR     = ar
 LD     = ld
 STRIP  = strip
-MOVE   = mv
 
 ifeq ($(OS),SunOS)
 # SunOS should use /usr/xpg4/bin/awk
@@ -145,13 +144,6 @@ SHARE_FLAGS = -shared $(ARCHFLAG) -Wl,-soname,$(DYNAMIC_LIB)
 ##############################################
 
 all: $(DYNAMIC_LIB)
-	@if [ ! -d ../../lib/$(ARCH) ]; then \
-		mkdir ../../lib/$(ARCH) ; \
-	fi
-	@if [ ! -d ../../lib/$(ARCH)/$(XINPUT_ABI_STR) ]; then \
-		mkdir ../../lib/$(ARCH)/$(XINPUT_ABI_STR) ; \
-	fi
-	@$(MOVE) $(DYNAMIC_LIB) ../../lib/$(ARCH)/$(XINPUT_ABI_STR)
 
 $(OBJPATH)/%.o : %.c
 	@if [ ! -d obj ] ; then \
@@ -165,11 +157,11 @@ $(OBJPATH)/%.o : %.c
 $(DYNAMIC_LIB): $(OBJECTS)
 	@$(CC) $(SHARE_FLAGS) -o $(DYNAMIC_LIB) $(OBJECTS) $(LDLIBS)
 
-install:
+install: $(DYNAMIC_LIB)
 	@if [ -d /usr/lib/xorg/modules/input ] ; then \
-		cp ../../lib/$(ARCH)/$(XINPUT_ABI_STR)/$(DYNAMIC_LIB) /usr/lib/xorg/modules/input ;\
+		cp $(DYNAMIC_LIB) /usr/lib/xorg/modules/input ;\
 	elif [ -d /usr/lib64/xorg/modules/input ] ; then \
-		cp ../../lib/$(ARCH)/$(XINPUT_ABI_STR)/$(DYNAMIC_LIB) /usr/lib64/xorg/modules/input ;\
+		cp $(DYNAMIC_LIB) /usr/lib64/xorg/modules/input ;\
 	fi
 
 clean:

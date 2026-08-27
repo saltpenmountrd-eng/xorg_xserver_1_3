@@ -70,7 +70,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#include <xorg-server.h>
+#include <X11/keysym.h>
+#include <X11/XF86keysym.h>
+#include <X11/extensions/XIproto.h>
+#include <X11/Xfuncproto.h>
+#include <xf86.h>
+#include <X11/extensions/XI.h>
+#include <xf86Module.h>
 #include <xf86Xinput.h>
+#include <mipointer.h>
+#include <xf86_OSproc.h>
 
 #ifndef BITS_PER_LONG
 #define BITS_PER_LONG		(sizeof(unsigned long) * 8)

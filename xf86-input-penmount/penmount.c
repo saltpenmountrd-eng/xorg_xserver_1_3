@@ -56,16 +56,17 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include <xorg-server.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
 #include <X11/extensions/XIproto.h>
 
 #include "penmount.h"
-
+#include <X11/Xfuncproto.h>
 #include <xf86.h>
-
+#include <X11/extensions/XI.h>
 #include <xf86Module.h>
+#include <xf86Xinput.h>
 #include <mipointer.h>
 
 

@@ -61,6 +61,8 @@ typedef struct {
     double	calib_data[2 * PM_MAX_POINTS]; /* rawX,rawY pairs, row-major */
 
     gboolean	pressed;
+    gboolean	have_sample;		/* TRUE once a real (non-guessed) sample has
+					 * arrived for the current press */
     double	sample_x, sample_y;	/* latest raw sample while pressed */
 
     GtkWidget	*window;
@@ -313,6 +315,23 @@ pm_record_release (void)
         return;
 
     ctx.pressed = FALSE;
+
+    if (!ctx.have_sample) {
+        /*
+         * Never got a real sample for this press -- neither the press
+         * event nor any motion event carried valid axis data (axes_count
+         * was 0 on both, which can happen if this driver build predates
+         * attaching position to button events, or if the touch was too
+         * brief for even one ABS report to arrive). Recording (0,0) or a
+         * stale value from a previous point here would silently corrupt
+         * the fit -- retry this same point instead.
+         */
+        fprintf (stderr, "[pm_calibrate] [debug] point %d/%d RELEASE: NO VALID SAMPLE "
+                 "received (press and motion both had axes_count=0) -- please touch "
+                 "this point again\n", ctx.point + 1, ctx.n_points);
+        return;
+    }
+
     ctx.calib_data[ctx.point * 2]     = ctx.sample_x;
     ctx.calib_data[ctx.point * 2 + 1] = ctx.sample_y;
 
@@ -333,10 +352,11 @@ pm_event_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
     if (xe->type == ctx.motion_type) {
         XDeviceMotionEvent *xdme = (XDeviceMotionEvent *) xe;
-        if (ctx.pressed) {
+        if (ctx.pressed && xdme->axes_count >= 2) {
             static int pmMotionDbgCount = 0;
             ctx.sample_x = xdme->axis_data[0];
             ctx.sample_y = xdme->axis_data[1];
+            ctx.have_sample = TRUE;
             if ((pmMotionDbgCount++ % 5) == 0)
                 fprintf (stderr, "[pm_calibrate] [debug] point %d/%d MOTION: "
                          "first_axis=%d axes_count=%d raw=(%.1f,%.1f)\n",
@@ -347,12 +367,17 @@ pm_event_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
     } else if (xe->type == ctx.press_type) {
         XDeviceButtonEvent *xdbe = (XDeviceButtonEvent *) xe;
         ctx.pressed = TRUE;
-        ctx.sample_x = xdbe->axis_data[0];
-        ctx.sample_y = xdbe->axis_data[1];
+        ctx.have_sample = FALSE;
+        if (xdbe->axes_count >= 2) {
+            ctx.sample_x = xdbe->axis_data[0];
+            ctx.sample_y = xdbe->axis_data[1];
+            ctx.have_sample = TRUE;
+        }
         fprintf (stderr, "[pm_calibrate] [debug] point %d/%d PRESS: button=%d "
-                 "first_axis=%d axes_count=%d raw=(%.1f,%.1f)\n",
+                 "first_axis=%d axes_count=%d raw=(%.1f,%.1f)%s\n",
                  ctx.point + 1, ctx.n_points, xdbe->button, xdbe->first_axis,
-                 xdbe->axes_count, ctx.sample_x, ctx.sample_y);
+                 xdbe->axes_count, (double) xdbe->axis_data[0], (double) xdbe->axis_data[1],
+                 ctx.have_sample ? "" : "  (no axes on press -- waiting for motion)");
         return GDK_FILTER_REMOVE;
     } else if (xe->type == ctx.release_type) {
         pm_record_release ();

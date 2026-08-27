@@ -332,7 +332,27 @@ PenmountBtnProcess (InputInfoPtr pInfo, struct input_event *ev)
 	state->btn->callback[button](pInfo, button, ev->value);
 
     button = state->btn->map[button];
-    xf86PostButtonEvent (pInfo->dev, 0, button, ev->value, 0, 0);
+
+    /*
+     * Attach the current position to the button event itself rather than
+     * relying solely on a separate DeviceMotionNotify to carry it.
+     *
+     * Kernel ABS fuzz/debounce can legitimately suppress an EV_ABS report
+     * when a new touch's raw value is too close to the previously cached
+     * one, which means PenmountAxesAbsSynRep() never runs for that touch
+     * and no motion event is ever posted -- a calibration tool (or any
+     * XInput client) reading only DeviceButtonPress axis_data would then
+     * see all-zero/garbage data for that touch. state->axes->v[0]/[1]
+     * always holds the most recent evdev-resolution coordinate (raw,
+     * calibrated, or fallback-stretched depending on mode -- see
+     * PenmountAxesAbsSynRep in penmount_axes.c) regardless of whether a
+     * fresh ABS event fired for *this* touch, so it's safe to read here.
+     */
+    if (state->axes && state->axes->axes >= 2)
+	xf86PostButtonEvent (pInfo->dev, 0, button, ev->value, 0, 2,
+		state->axes->v[0], state->axes->v[1]);
+    else
+	xf86PostButtonEvent (pInfo->dev, 0, button, ev->value, 0, 0);
 }
 
 int

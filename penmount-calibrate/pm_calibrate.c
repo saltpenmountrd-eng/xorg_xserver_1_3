@@ -45,6 +45,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/stat.h>
 
 #include "penmount_calib_format.h"
@@ -191,6 +192,11 @@ pm_write_calib_file (double ax, double ay, double az,
     fsync (fileno (fp));
     fclose (fp);
 
+    fprintf (stderr, "[pm_calibrate] [debug] wrote %s: magic=0x%08lx version=%lu "
+             "ax=%.6f ay=%.6f az=%.6f bx=%.6f by=%.6f bz=%.6f crc32=0x%08lx\n",
+             PM_CAL_FILE, (unsigned long) f.magic, (unsigned long) f.version,
+             f.ax, f.ay, f.az, f.bx, f.by, f.bz, (unsigned long) f.crc32);
+
     return TRUE;
 }
 
@@ -203,6 +209,7 @@ pm_signal_calib_start (void)
     fp = fopen (PM_CAL_START, "w");
     if (fp)
         fclose (fp);
+    fprintf (stderr, "[pm_calibrate] [debug] created %s (fp=%p)\n", PM_CAL_START, (void *) fp);
 }
 
 static void
@@ -211,12 +218,15 @@ pm_signal_calib_ok (void)
     FILE *fp = fopen (PM_CAL_OK, "w");
     if (fp)
         fclose (fp);
+    fprintf (stderr, "[pm_calibrate] [debug] created %s (fp=%p)\n", PM_CAL_OK, (void *) fp);
 }
 
 static void
 pm_clear_calib_start (void)
 {
-    unlink (PM_CAL_START);
+    int r = unlink (PM_CAL_START);
+    fprintf (stderr, "[pm_calibrate] [debug] removed %s (result=%d, %s)\n",
+             PM_CAL_START, r, r == 0 ? "ok" : strerror (errno));
 }
 
 /* ------------------------------------------------------------------ */
@@ -238,11 +248,15 @@ pm_open_xinput_device (const char *name_prefix)
         return FALSE;
     }
 
+    fprintf (stderr, "[pm_calibrate] [debug] %d XInput devices found (matching prefix \"%s\"):\n",
+             n, name_prefix);
     for (i = 0; i < n; i++) {
-        if (g_ascii_strncasecmp (list[i].name, name_prefix, strlen (name_prefix)) == 0) {
+        gboolean match = (g_ascii_strncasecmp (list[i].name, name_prefix, strlen (name_prefix)) == 0);
+        fprintf (stderr, "[pm_calibrate] [debug]   #%d id=%lu name=\"%s\" use=%d%s\n",
+                 i, (unsigned long) list[i].id, list[i].name, list[i].use,
+                 match ? "  <-- MATCH" : "");
+        if (match && found_id == (XID) -1)
             found_id = list[i].id;
-            break;
-        }
     }
     XFreeDeviceList (list);
 
@@ -265,6 +279,11 @@ pm_open_xinput_device (const char *name_prefix)
     if (ctx.press_type) n_classes++;
     DeviceButtonRelease (ctx.xdev, ctx.release_type, classes[n_classes]);
     if (ctx.release_type) n_classes++;
+
+    fprintf (stderr, "[pm_calibrate] [debug] opened device id=%lu: motion_type=%d "
+             "press_type=%d release_type=%d (n_classes=%d)\n",
+             (unsigned long) found_id, ctx.motion_type, ctx.press_type,
+             ctx.release_type, n_classes);
 
     if (n_classes == 0) {
         g_printerr ("pm_calibrate: device has no motion/button classes to select.\n");
@@ -297,6 +316,9 @@ pm_record_release (void)
     ctx.calib_data[ctx.point * 2]     = ctx.sample_x;
     ctx.calib_data[ctx.point * 2 + 1] = ctx.sample_y;
 
+    fprintf (stderr, "[pm_calibrate] [debug] point %d/%d RELEASE: recorded raw=(%.1f,%.1f)\n",
+             ctx.point + 1, ctx.n_points, ctx.sample_x, ctx.sample_y);
+
     ctx.point++;
     if (ctx.point >= ctx.n_points)
         pm_compute_and_save ();
@@ -312,8 +334,14 @@ pm_event_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
     if (xe->type == ctx.motion_type) {
         XDeviceMotionEvent *xdme = (XDeviceMotionEvent *) xe;
         if (ctx.pressed) {
+            static int pmMotionDbgCount = 0;
             ctx.sample_x = xdme->axis_data[0];
             ctx.sample_y = xdme->axis_data[1];
+            if ((pmMotionDbgCount++ % 5) == 0)
+                fprintf (stderr, "[pm_calibrate] [debug] point %d/%d MOTION: "
+                         "first_axis=%d axes_count=%d raw=(%.1f,%.1f)\n",
+                         ctx.point + 1, ctx.n_points, xdme->first_axis, xdme->axes_count,
+                         ctx.sample_x, ctx.sample_y);
         }
         return GDK_FILTER_REMOVE;
     } else if (xe->type == ctx.press_type) {
@@ -321,6 +349,10 @@ pm_event_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
         ctx.pressed = TRUE;
         ctx.sample_x = xdbe->axis_data[0];
         ctx.sample_y = xdbe->axis_data[1];
+        fprintf (stderr, "[pm_calibrate] [debug] point %d/%d PRESS: button=%d "
+                 "first_axis=%d axes_count=%d raw=(%.1f,%.1f)\n",
+                 ctx.point + 1, ctx.n_points, xdbe->button, xdbe->first_axis,
+                 xdbe->axes_count, ctx.sample_x, ctx.sample_y);
         return GDK_FILTER_REMOVE;
     } else if (xe->type == ctx.release_type) {
         pm_record_release ();
@@ -357,6 +389,9 @@ pm_compute_and_save (void)
     double ax3[3], ay3[3];
     int idx, i, j;
 
+    fprintf (stderr, "[pm_calibrate] [debug] solving from %d points (k=%d):\n",
+             ctx.n_points, ctx.k);
+
     for (idx = 0; idx < ctx.n_points; idx++) {
         double rx = ctx.calib_data[idx * 2];
         double ry = ctx.calib_data[idx * 2 + 1];
@@ -364,6 +399,8 @@ pm_compute_and_save (void)
         double row[3];
 
         pm_target_point (idx, ctx.k, &tx, &ty);
+        fprintf (stderr, "[pm_calibrate] [debug]   point %2d: target=(%7.1f,%7.1f) raw=(%7.1f,%7.1f)\n",
+                 idx, tx, ty, rx, ry);
 
         row[0] = rx; row[1] = ry; row[2] = 1.0;
         for (i = 0; i < 3; i++) {
@@ -375,11 +412,38 @@ pm_compute_and_save (void)
     }
 
     if (!pm_solve3x3 (AtA, AtBx, ax3) || !pm_solve3x3 (AtA, AtBy, ay3)) {
+        fprintf (stderr, "[pm_calibrate] [debug] pm_solve3x3 FAILED (singular matrix) -- "
+                 "points are likely too close together, collinear, or all identical raw samples\n");
         ctx.error = "Calibration matrix could not be solved (points too close "
                     "together or collinear) -- please retry.";
         ctx.aborted = TRUE;
         gtk_main_quit ();
         return;
+    }
+
+    fprintf (stderr, "[pm_calibrate] [debug] solved: ax=%.6f ay=%.6f az=%.6f  "
+             "bx=%.6f by=%.6f bz=%.6f\n",
+             ax3[0], ax3[1], ax3[2], ay3[0], ay3[1], ay3[2]);
+
+    /*
+     * Residual check: re-apply the just-solved matrix to each raw sample
+     * and compare against its own target. Large residuals here mean the
+     * *fit itself* is bad (noisy/inconsistent raw samples, wrong axis
+     * assignment, or too few/collinear points) -- as opposed to the
+     * driver applying a good matrix incorrectly, which is a different
+     * bug living in penmount_axes.c instead.
+     */
+    for (idx = 0; idx < ctx.n_points; idx++) {
+        double rx = ctx.calib_data[idx * 2];
+        double ry = ctx.calib_data[idx * 2 + 1];
+        double tx, ty, fx, fy;
+
+        pm_target_point (idx, ctx.k, &tx, &ty);
+        fx = ax3[0] * rx + ax3[1] * ry + ax3[2];
+        fy = ay3[0] * rx + ay3[1] * ry + ay3[2];
+        fprintf (stderr, "[pm_calibrate] [debug]   residual point %2d: target=(%7.1f,%7.1f) "
+                 "fit=(%7.1f,%7.1f) err=(%+6.1f,%+6.1f)\n",
+                 idx, tx, ty, fx, fy, fx - tx, fy - ty);
     }
 
     if (!pm_write_calib_file (ax3[0], ax3[1], ax3[2], ay3[0], ay3[1], ay3[2])) {
@@ -487,6 +551,11 @@ main (int argc, char **argv)
     screen = gdk_screen_get_default ();
     ctx.screen_width  = gdk_screen_get_width (screen);
     ctx.screen_height = gdk_screen_get_height (screen);
+
+    fprintf (stderr, "[pm_calibrate] [debug] device_prefix=\"%s\" points=%d k=%d n_points=%d "
+             "screen=%dx%d PM_CAL_RES=%d\n",
+             device_prefix, points, ctx.k, ctx.n_points,
+             ctx.screen_width, ctx.screen_height, PM_CAL_RES);
 
     ctx.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_fullscreen (GTK_WINDOW (ctx.window));

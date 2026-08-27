@@ -166,9 +166,14 @@ PenmountConvert(InputInfoPtr pInfo, int first, int num, int v0, int v1, int v2,
     if (state->abs && state->mode == Absolute && state->abs->screen != -1) {
         int width  = screenInfo.screens[state->abs->screen]->width;
         int height = screenInfo.screens[state->abs->screen]->height;
+        static int pmConvDbgCount = 0;
 
         *x = xf86ScaleAxis (v0, 0, width,  0, PM_CAL_RES);
         *y = xf86ScaleAxis (v1, 0, height, 0, PM_CAL_RES);
+
+        if ((pmConvDbgCount++ % 15) == 0)
+            xf86Msg(X_INFO, "%s: [calib-debug] PenmountConvert screen=%d %dx%d eres=(%d,%d) -> px=(%d,%d)\n",
+                    pInfo->name, state->abs->screen, width, height, v0, v1, *x, *y);
     } else {
         *x = v0;
         *y = v1;
@@ -304,6 +309,10 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	int rawX = state->abs->v[0];
 	int rawY = state->abs->v[1];
 	int calX, calY;
+	const char *pmMode;
+	static Bool pmLastRawMode = FALSE;
+	Bool pmRawModeNow;
+	static int pmDbgCount = 0;
 
 	/*
 	 * A finished calibration run wins over "still calibrating": pick up
@@ -311,9 +320,21 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	 * applies below. penmountCalibCheckAndConsumeOK() deletes CalibOK
 	 * itself once consumed, so this only actually reloads once.
 	 */
-	penmountCalibCheckAndConsumeOK (&pPenmount->calib);
+	if (penmountCalibCheckAndConsumeOK (&pPenmount->calib))
+	    xf86Msg(X_INFO, "%s: [calib-debug] CalibOK consumed -> reloaded, valid=%d "
+		    "ax=%.6f ay=%.6f az=%.6f bx=%.6f by=%.6f bz=%.6f\n",
+		    pInfo->name, pPenmount->calib.valid,
+		    pPenmount->calib.ax, pPenmount->calib.ay, pPenmount->calib.az,
+		    pPenmount->calib.bx, pPenmount->calib.by, pPenmount->calib.bz);
 
-	if (penmountCalibCheckStart ()) {
+	pmRawModeNow = penmountCalibCheckStart ();
+	if (pmRawModeNow != pmLastRawMode) {
+	    xf86Msg(X_INFO, "%s: [calib-debug] raw-report mode %s\n", pInfo->name,
+		    pmRawModeNow ? "ENTERED (CalibStart present)" : "EXITED (CalibStart gone)");
+	    pmLastRawMode = pmRawModeNow;
+	}
+
+	if (pmRawModeNow) {
 	    /*
 	     * Calibration program is running: report untouched raw ADC
 	     * counts (via this device's extended DeviceValuator events,
@@ -323,6 +344,7 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	     */
 	    calX = rawX;
 	    calY = rawY;
+	    pmMode = "RAW";
 	} else if (pPenmount->calib.valid) {
 	    double x = pPenmount->calib.ax * rawX + pPenmount->calib.ay * rawY + pPenmount->calib.az;
 	    double y = pPenmount->calib.bx * rawX + pPenmount->calib.by * rawY + pPenmount->calib.bz;
@@ -334,6 +356,7 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 
 	    calX = (int) x;
 	    calY = (int) y;
+	    pmMode = "CALIBRATED";
 	} else {
 	    /*
 	     * No valid calibration on disk yet: fall back to a naive linear
@@ -344,7 +367,21 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	     */
 	    calX = xf86ScaleAxis (rawX, 0, PM_CAL_RES, state->abs->min[0], state->abs->max[0]);
 	    calY = xf86ScaleAxis (rawY, 0, PM_CAL_RES, state->abs->min[1], state->abs->max[1]);
+	    pmMode = "FALLBACK-STRETCH";
 	}
+
+	/*
+	 * Throttled: one line roughly every 15 samples so a held touch
+	 * during dragging doesn't flood Xorg.log, but you still get a live
+	 * trickle of raw -> calibrated values to compare against what
+	 * pm_calibrate reports on its side.
+	 */
+	if ((pmDbgCount++ % 15) == 0)
+	    xf86Msg(X_INFO, "%s: [calib-debug] mode=%s raw=(%d,%d) min=(%d,%d) max=(%d,%d) -> cal=(%d,%d)\n",
+		    pInfo->name, pmMode, rawX, rawY,
+		    state->abs->min[0], state->abs->min[1],
+		    state->abs->max[0], state->abs->max[1],
+		    calX, calY);
 
 	state->axes->v[0] = calX;
 	state->axes->v[1] = calY;

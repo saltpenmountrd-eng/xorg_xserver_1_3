@@ -121,8 +121,12 @@ endif
 endif
 CDEFINE    += -U_FORTIFY_SOURCE
 CFLAGS     += $(ARCHFLAG) $(CDEFINE) $(CINCLUDE)
-LIBS        = ../../lib/$(ARCH)/libpm-driver.a
-LDLIBS      = -L../../lib/$(ARCH) -lpm-driver 
+# This fork is self-contained (hotplug brain, calibration, axes/btn/key are
+# all in the .c files below) and does not link against the vendor
+# libpm-driver.a used by PenMount's other Linux/BSD/Solaris drivers -- do
+# not reintroduce -lpm-driver here without actually adding that dependency
+# back to the source.
+LDLIBS      =
 STRIP_FLAGS = --remove-section=.comment
 
 ##############################################
@@ -132,7 +136,7 @@ STRIP_FLAGS = --remove-section=.comment
 TARGETNAME  = penmount_drv
 OBJPATH     = ./obj/$(ARCH)
 DYNAMIC_LIB = $(TARGETNAME).so
-OBJECTS     = $(OBJPATH)/penmount.o $(OBJPATH)/penmount.o $(OBJPATH)/penmount_axes.o $(OBJPATH)/penmount_brain.o $(OBJPATH)/penmount_btn.o $(OBJPATH)/penmount_calib.o $(OBJPATH)/penmount_key.o
+OBJECTS     = $(OBJPATH)/penmount.o $(OBJPATH)/penmount_axes.o $(OBJPATH)/penmount_brain.o $(OBJPATH)/penmount_btn.o $(OBJPATH)/penmount_calib.o $(OBJPATH)/penmount_key.o
 LINK_OBJECT = PenMount
 SHARE_FLAGS = -shared $(ARCHFLAG) -Wl,-soname,$(DYNAMIC_LIB)
 

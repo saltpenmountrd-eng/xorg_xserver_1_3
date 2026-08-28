@@ -223,6 +223,7 @@ typedef struct _penmountCalib {
     double	ax, ay, az;
     double	bx, by, bz;
     Bool	valid;
+    Bool	debug;	/* mirrors penmountDeviceRec.debug; see PenmountNew() */
 } penmountCalibRec, *penmountCalibPtr;
 
 typedef struct _penmountDevice {
@@ -239,6 +240,11 @@ typedef struct _penmountDevice {
 
     penmountStateRec	state;
     penmountCalibRec	calib;
+    Bool		debug;	/* from the "Debug" xorg.conf Option; gates the
+				 * [calib-debug] xf86Msg calls in
+				 * penmount_axes.c/penmount_calib.c so a
+				 * production system doesn't get flooded with
+				 * per-touch-sample logging by default */
 
     struct _penmountDevice *next;
 } penmountDeviceRec, *penmountDevicePtr;
@@ -255,6 +261,9 @@ typedef struct _penmountDriver {
     struct input_id	id;
 
     int			pass;
+    Bool		debug;	/* parsed once from Option "Debug" in
+				 * PenmountCorePreInit(), copied into each
+				 * matched penmountDeviceRec by PenmountNew() */
 
     InputDriverPtr	drv;
     IDevPtr		dev;

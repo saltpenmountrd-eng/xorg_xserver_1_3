@@ -171,7 +171,7 @@ PenmountConvert(InputInfoPtr pInfo, int first, int num, int v0, int v1, int v2,
         *x = xf86ScaleAxis (v0, 0, width,  0, PM_CAL_RES);
         *y = xf86ScaleAxis (v1, 0, height, 0, PM_CAL_RES);
 
-        if ((pmConvDbgCount++ % 15) == 0)
+        if (pPenmount->debug && (pmConvDbgCount++ % 15) == 0)
             xf86Msg(X_INFO, "%s: [calib-debug] PenmountConvert screen=%d %dx%d eres=(%d,%d) -> px=(%d,%d)\n",
                     pInfo->name, state->abs->screen, width, height, v0, v1, *x, *y);
     } else {
@@ -320,7 +320,7 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	 * applies below. penmountCalibCheckAndConsumeOK() deletes CalibOK
 	 * itself once consumed, so this only actually reloads once.
 	 */
-	if (penmountCalibCheckAndConsumeOK (&pPenmount->calib))
+	if (penmountCalibCheckAndConsumeOK (&pPenmount->calib) && pPenmount->debug)
 	    xf86Msg(X_INFO, "%s: [calib-debug] CalibOK consumed -> reloaded, valid=%d "
 		    "ax=%.6f ay=%.6f az=%.6f bx=%.6f by=%.6f bz=%.6f\n",
 		    pInfo->name, pPenmount->calib.valid,
@@ -329,8 +329,9 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 
 	pmRawModeNow = penmountCalibCheckStart ();
 	if (pmRawModeNow != pmLastRawMode) {
-	    xf86Msg(X_INFO, "%s: [calib-debug] raw-report mode %s\n", pInfo->name,
-		    pmRawModeNow ? "ENTERED (CalibStart present)" : "EXITED (CalibStart gone)");
+	    if (pPenmount->debug)
+		xf86Msg(X_INFO, "%s: [calib-debug] raw-report mode %s\n", pInfo->name,
+			pmRawModeNow ? "ENTERED (CalibStart present)" : "EXITED (CalibStart gone)");
 	    pmLastRawMode = pmRawModeNow;
 	}
 
@@ -376,7 +377,7 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	 * trickle of raw -> calibrated values to compare against what
 	 * pm_calibrate reports on its side.
 	 */
-	if ((pmDbgCount++ % 15) == 0)
+	if (pPenmount->debug && (pmDbgCount++ % 15) == 0)
 	    xf86Msg(X_INFO, "%s: [calib-debug] mode=%s raw=(%d,%d) min=(%d,%d) max=(%d,%d) -> cal=(%d,%d)\n",
 		    pInfo->name, pmMode, rawX, rawY,
 		    state->abs->min[0], state->abs->min[1],

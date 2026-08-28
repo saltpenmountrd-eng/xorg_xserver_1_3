@@ -49,31 +49,35 @@ penmountCalibLoad (penmountCalibPtr calib)
 
     fp = fopen (PM_CAL_FILE, "rb");
     if (!fp) {
-	xf86Msg(X_INFO, "penmount-calib: [calib-debug] cannot open %s (%s)\n",
-		PM_CAL_FILE, strerror (errno));
+	if (calib->debug)
+	    xf86Msg(X_INFO, "penmount-calib: [calib-debug] cannot open %s (%s)\n",
+		    PM_CAL_FILE, strerror (errno));
 	return FALSE;
     }
 
     n = fread (&f, 1, sizeof (f), fp);
     fclose (fp);
 
-    xf86Msg(X_INFO, "penmount-calib: [calib-debug] read %lu bytes from %s (expected %lu)\n",
-	    (unsigned long) n, PM_CAL_FILE, (unsigned long) sizeof (f));
+    if (calib->debug)
+	xf86Msg(X_INFO, "penmount-calib: [calib-debug] read %lu bytes from %s (expected %lu)\n",
+		(unsigned long) n, PM_CAL_FILE, (unsigned long) sizeof (f));
 
     if (n != sizeof (f))
 	return FALSE;
 
-    xf86Msg(X_INFO, "penmount-calib: [calib-debug] magic=0x%08lx (expect 0x%08lx) "
-	    "version=%lu (expect %lu)\n",
-	    (unsigned long) f.magic, (unsigned long) PM_CAL_MAGIC,
-	    (unsigned long) f.version, (unsigned long) PM_CAL_VERSION);
+    if (calib->debug)
+	xf86Msg(X_INFO, "penmount-calib: [calib-debug] magic=0x%08lx (expect 0x%08lx) "
+		"version=%lu (expect %lu)\n",
+		(unsigned long) f.magic, (unsigned long) PM_CAL_MAGIC,
+		(unsigned long) f.version, (unsigned long) PM_CAL_VERSION);
 
     if (f.magic != PM_CAL_MAGIC || f.version != PM_CAL_VERSION)
 	return FALSE;
 
     crc = pmCrc32 ((unsigned char *) &f, sizeof (f) - sizeof (f.crc32));
-    xf86Msg(X_INFO, "penmount-calib: [calib-debug] crc32 computed=0x%08lx stored=0x%08lx\n",
-	    (unsigned long) crc, (unsigned long) f.crc32);
+    if (calib->debug)
+	xf86Msg(X_INFO, "penmount-calib: [calib-debug] crc32 computed=0x%08lx stored=0x%08lx\n",
+		(unsigned long) crc, (unsigned long) f.crc32);
     if (crc != f.crc32)
 	return FALSE;
 
@@ -81,9 +85,10 @@ penmountCalibLoad (penmountCalibPtr calib)
     calib->bx = f.bx; calib->by = f.by; calib->bz = f.bz;
     calib->valid = TRUE;
 
-    xf86Msg(X_INFO, "penmount-calib: [calib-debug] loaded ax=%.6f ay=%.6f az=%.6f "
-	    "bx=%.6f by=%.6f bz=%.6f\n",
-	    f.ax, f.ay, f.az, f.bx, f.by, f.bz);
+    if (calib->debug)
+	xf86Msg(X_INFO, "penmount-calib: [calib-debug] loaded ax=%.6f ay=%.6f az=%.6f "
+		"bx=%.6f by=%.6f bz=%.6f\n",
+		f.ax, f.ay, f.az, f.bx, f.by, f.bz);
 
     return TRUE;
 }

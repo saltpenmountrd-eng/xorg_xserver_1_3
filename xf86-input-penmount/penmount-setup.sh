@@ -21,8 +21,10 @@
 #        already active, leaves it alone.
 #      - InputDevice section: if a section with Identifier "PenMount" is
 #        missing, appends one (Driver "penmount", Device
-#        "/dev/input/event*", vendor "0x14e1", product "0x6000"); if one
-#        already exists, leaves it untouched.
+#        "/dev/input/event*", vendor "0x14e1", product "0x6000", Debug
+#        "off"); if one already exists, leaves it untouched. Set the
+#        InputDevice section's Debug option to "on" to enable the driver's
+#        verbose per-touch-sample [calib-debug] logging in Xorg.log.
 #   4) Prints a reminder to reboot.
 #
 # uninstall:
@@ -154,6 +156,7 @@ edit_conf_install() {
             printf("\tOption\t\t\"Device\"\t\"%s\"\n", dev)
             printf("\tOption\t\t\"vendor\"\t\"%s\"\n", vendor)
             printf("\tOption\t\t\"product\"\t\"%s\"\n", product)
+            printf("\tOption\t\t\"Debug\"\t\t\"off\"\n")
             printf("EndSection\n")
         }
     }

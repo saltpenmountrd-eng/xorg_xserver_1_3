@@ -50,7 +50,8 @@ PenMount USB 触摸屏 Xorg 驱动套件
        - 在 /etc/X11/xorg.conf 的 ServerLayout 区段加入(或取消注释)
          PenMount 这一行 InputDevice 设置
        - 在 /etc/X11/xorg.conf 加入 PenMount 的 InputDevice 区段
-         (Driver "penmount",并预设锁定 vendor 0x14e1 / product 0x6000)
+         (Driver "penmount",并预设锁定 vendor 0x14e1 / product 0x6000,
+         Debug 选项预设为 "off")
 
      每次修改 xorg.conf 前都会自动备份一份带时间戳的原始文件,備份檔
      跟 xorg.conf 放在同一目录下。
@@ -129,3 +130,20 @@ PenMount USB 触摸屏 Xorg 驱动套件
   - 如果需要重新安装或更新驱动版本,请务必按照第三节所述的
     uninstall → 重启 → install 顺序操作,不要在未重启的情况下直接
     覆盖 penmount_drv.so。
+
+  - 如果怀疑是校准或坐标转换的问题,想在 Xorg 的 log 文件中看到每一笔
+    触摸座标从原始值到校准后数值的详细过程,可以把 /etc/X11/xorg.conf
+    中 PenMount 的 InputDevice 区段里的
+
+         Option "Debug" "off"
+
+    改成
+
+         Option "Debug" "on"
+
+    然后重新启动 X(不需要重新启动整个系统)。开启后,驱动会在
+    Xorg.0.log 中输出带有 "[calib-debug]" 字样的详细信息,包含每一笔
+    触摸事件的原始座标、目前的校准模式(RAW / CALIBRATED /
+    FALLBACK-STRETCH)、校准后座标,以及换算到目前屏幕分辨率后的像素
+    座标。由于这些信息在每一笔触摸时都会输出,内容较多,预设为关闭,
+    建议仅在排查问题时暂时开启,排查完毕后改回 "off" 并重启 X。

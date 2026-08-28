@@ -20,7 +20,9 @@
 #        且生效中,不会做任何改动。
 #      - InputDevice 区段:如果没有 Identifier 为 "PenMount" 的区段,会
 #        自动新增一段(Driver "penmount"、Device "/dev/input/event*"、
-#        vendor "0x14e1"、product "0x6000");如果已经存在,不会改动。
+#        vendor "0x14e1"、product "0x6000"、Debug "off");如果已经存在,
+#        不会改动。把 InputDevice 区段里的 Debug 选项改成 "on",可以让
+#        驱动在 Xorg.log 中输出详细的逐笔触控坐标调试信息([calib-debug])。
 #   4) 结束时提示需要重启系统。
 #
 # uninstall(卸载):
@@ -150,6 +152,7 @@ edit_conf_install() {
             printf("\tOption\t\t\"Device\"\t\"%s\"\n", dev)
             printf("\tOption\t\t\"vendor\"\t\"%s\"\n", vendor)
             printf("\tOption\t\t\"product\"\t\"%s\"\n", product)
+            printf("\tOption\t\t\"Debug\"\t\t\"off\"\n")
             printf("EndSection\n")
         }
     }

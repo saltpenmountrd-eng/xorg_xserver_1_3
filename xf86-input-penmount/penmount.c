@@ -290,6 +290,8 @@ PenmountNew(penmountDriverPtr driver, penmountDevicePtr device)
 
     device->callback = PenmountProc;
     device->pInfo = pInfo;
+    device->debug = driver->debug;
+    device->calib.debug = driver->debug;
 
     xf86CollectInputOptions(pInfo, NULL, NULL);
     xf86ProcessCommonOptions(pInfo, pInfo->options);
@@ -449,6 +451,15 @@ PenmountCorePreInit(InputDriverPtr drv, IDevPtr dev, int flags)
     else if (pPenmount->pass < 0)
 	pPenmount->pass = 0;
 
+    /*
+     * Off by default: the [calib-debug] logging in penmount_axes.c and
+     * penmount_calib.c is per-touch-sample chatty and only meant for
+     * diagnosing a specific problem, not for routine production use.
+     * Add `Option "Debug" "on"` to this InputDevice section to enable it.
+     */
+    pPenmount->debug = xf86SetBoolOption(dev->commonOptions, "Debug", FALSE);
+    if (pPenmount->debug)
+	xf86Msg(X_CONFIG, "%s: Debug logging enabled.\n", dev->identifier);
 
     pPenmount->callback = PenmountNew;
 

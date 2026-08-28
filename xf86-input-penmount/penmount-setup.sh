@@ -159,6 +159,7 @@ edit_conf_install() {
     }
     ' "$XORG_CONF" > "$tmp"
     mv "$tmp" "$XORG_CONF"
+    chmod 644 "$XORG_CONF"
 }
 
 edit_conf_uninstall() {
@@ -199,6 +200,7 @@ edit_conf_uninstall() {
     { print }
     ' "$XORG_CONF" > "$tmp"
     mv "$tmp" "$XORG_CONF"
+    chmod 644 "$XORG_CONF"
 }
 
 # ---------------------------------------------------------------------

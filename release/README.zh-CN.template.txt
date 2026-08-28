@@ -69,7 +69,46 @@ PenMount USB 触摸屏 Xorg 驱动套件
 
 
 --------------------------------------------------------------------
-四、卸载方式
+四、xorg.conf 设定范例
+--------------------------------------------------------------------
+
+  以下是 penmount-setup.sh install 执行后,/etc/X11/xorg.conf 里会自动
+  加入(或修改)的内容,仅供参考、核对之用,不需要手动编辑:
+
+       Section "ServerLayout"
+               ...
+               InputDevice     "PenMount"      "AlwaysCore"
+       EndSection
+
+       Section "InputDevice"
+               Identifier      "PenMount"
+               Driver          "penmount"
+               Option          "Device"        "/dev/input/event*"
+               Option          "vendor"        "0x14e1"
+               Option          "product"       "0x6000"
+               Option          "Debug"         "off"
+       EndSection
+
+  各项设置的意思:
+
+       Identifier   这个 InputDevice 区段的名字,固定为 "PenMount",
+                    脚本靠这个名字判断区段是否已经存在
+       Driver       固定为 "penmount",对应 penmount_drv.so
+       Device       触摸屏对应的输入装置节点,预设用通配符
+                    "/dev/input/event*" 让驱动自动比对、找出正确的装置,
+                    一般不需要修改
+       vendor       USB vendor ID,PenMount 触摸屏固定是 "0x14e1"
+       product      USB product ID,固定是 "0x6000"
+       Debug        除错开关,预设 "off";如需要在 Xorg 的 log 文件中
+                    查看详细的触摸座标除错信息,可改成 "on"(详见第七节
+                    「疑难排解」),排查完毕请记得改回 "off"
+
+  ServerLayout 区段里的那一行,则是告诉 Xorg 要把上面这个 PenMount
+  InputDevice 一并启用,两者缺一不可。
+
+
+--------------------------------------------------------------------
+五、卸载方式
 --------------------------------------------------------------------
 
   以 root 权限执行:
@@ -82,7 +121,7 @@ PenMount USB 触摸屏 Xorg 驱动套件
 
 
 --------------------------------------------------------------------
-五、触摸屏校准
+六、触摸屏校准
 --------------------------------------------------------------------
 
   安装完成、重启系统并确认触摸屏被正确识别之后,以一般使用者或 root
@@ -115,12 +154,13 @@ PenMount USB 触摸屏 Xorg 驱动套件
 
 
 --------------------------------------------------------------------
-六、疑难排解
+七、疑难排解
 --------------------------------------------------------------------
 
   - 如果 X 启动后触摸屏完全没有反应,请先确认:
       1. lsusb 能不能看到 vendor 0x14e1 / product 0x6000 的装置
       2. /etc/X11/xorg.conf 里 PenMount 的设置是否存在且没有被注释
+         (可对照第四节的设定范例逐项核对)
       3. Xorg 的 log 文件里有没有 "PenMount" 相关的错误信息
 
   - 如果校准结果偏移很大或完全不对,请重新执行一次 pm_calibrate,

@@ -583,6 +583,22 @@ main (int argc, char **argv)
              ctx.screen_width, ctx.screen_height, PM_CAL_RES);
 
     ctx.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    /*
+     * gtk_window_fullscreen() only takes effect if a window manager is
+     * running and honors the EWMH _NET_WM_STATE_FULLSCREEN request -- on
+     * an embedded touch-panel target that boots straight into this one
+     * app with no window manager at all, that request is silently
+     * ignored and the window is left at GTK's own natural (small,
+     * top-left) size instead of covering the screen. Setting the size
+     * and position explicitly makes the window cover the full screen
+     * either way: a real window manager still sees the fullscreen
+     * request below and takes over cleanly, while a WM-less setup falls
+     * back to exactly the geometry we asked for, since nothing else is
+     * around to override it.
+     */
+    gtk_window_set_default_size (GTK_WINDOW (ctx.window), ctx.screen_width, ctx.screen_height);
+    gtk_window_move (GTK_WINDOW (ctx.window), 0, 0);
+    gtk_window_set_decorated (GTK_WINDOW (ctx.window), FALSE);
     gtk_window_fullscreen (GTK_WINDOW (ctx.window));
     gtk_widget_set_events (ctx.window, GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK);
     g_signal_connect (ctx.window, "expose-event", G_CALLBACK (pm_on_expose), NULL);

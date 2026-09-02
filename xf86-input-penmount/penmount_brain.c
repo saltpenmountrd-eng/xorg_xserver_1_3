@@ -211,7 +211,30 @@ penmountScanDevice (penmountDriverPtr driver, penmountDevInfoPtr info)
     found = 0;
     for (device = driver->devices; device; device = device->next) {
 	if (MatchDevice (device, info)) {
-	    if (device->seen != (penmount_seq - 1)) {
+	    Bool path_changed = !device->device || strcmp(device->device, info->dev);
+
+	    /*
+	     * Same physical device (matched by identity above), but its
+	     * /dev/input/eventN node is not the one we last opened. This
+	     * normally only happens together with a generation-counter
+	     * gap (device->seen != penmount_seq - 1), which alone would
+	     * be enough to trigger the reopen below. But a fast
+	     * disconnect+reconnect (e.g. a marginal USB connector jostled
+	     * during heavy touch use) can land both the removal and the
+	     * reappearance in the *same* rescan pass, in which case seen
+	     * jumps straight from its old value to the current
+	     * penmount_seq without ever equalling penmount_seq - 1, and
+	     * this device would otherwise be left silently pointing at a
+	     * dead fd -- with that fd still registered via
+	     * AddEnabledDevice, so the server would busy-poll it forever.
+	     * Force a clean DEVICE_OFF first whenever the path changed,
+	     * regardless of what the generation counter says, so the
+	     * stale fd is always properly closed before we reopen.
+	     */
+	    if (path_changed && device->seen == (penmount_seq - 1))
+		device->callback(device->pInfo->dev, DEVICE_OFF);
+
+	    if (device->seen != (penmount_seq - 1) || path_changed) {
 		device->device = xstrdup(info->dev);
 		device->phys = xstrdup(info->phys);
 		device->callback(device->pInfo->dev, DEVICE_ON);

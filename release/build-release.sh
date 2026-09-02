@@ -27,8 +27,8 @@
 set -eu
 
 # --- (0) version info --------------------------------------------------
-DRIVER_VERSION="${DRIVER_VERSION:-1.0.0}"
-CALIBRATE_VERSION="${CALIBRATE_VERSION:-1.0.0}"
+DRIVER_VERSION="${DRIVER_VERSION:-1.1.0}"
+CALIBRATE_VERSION="${CALIBRATE_VERSION:-1.0.1}"
 PACKAGE_VERSION="${PACKAGE_VERSION:-$DRIVER_VERSION}"
 BUILD_DATE="$(date +%Y%m%d)"
 

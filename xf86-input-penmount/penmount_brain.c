@@ -213,6 +213,12 @@ penmountScanDevice (penmountDriverPtr driver, penmountDevInfoPtr info)
 	if (MatchDevice (device, info)) {
 	    Bool path_changed = !device->device || strcmp(device->device, info->dev);
 
+	    if (driver->debug)
+		xf86Msg(X_INFO, "penmount brain: [hotplug-debug] matched \"%s\": old_path=%s "
+			"new_path=%s seen=%d penmount_seq=%d path_changed=%d\n",
+			info->name, device->device ? device->device : "(none)",
+			info->dev, device->seen, penmount_seq, path_changed);
+
 	    /*
 	     * Same physical device (matched by identity above), but its
 	     * /dev/input/eventN node is not the one we last opened. This
@@ -231,13 +237,21 @@ penmountScanDevice (penmountDriverPtr driver, penmountDevInfoPtr info)
 	     * regardless of what the generation counter says, so the
 	     * stale fd is always properly closed before we reopen.
 	     */
-	    if (path_changed && device->seen == (penmount_seq - 1))
+	    if (path_changed && device->seen == (penmount_seq - 1)) {
+		if (driver->debug)
+		    xf86Msg(X_INFO, "penmount brain: [hotplug-debug] path changed with no "
+			    "generation gap -- forcing DEVICE_OFF before reopen\n");
 		device->callback(device->pInfo->dev, DEVICE_OFF);
+	    }
 
 	    if (device->seen != (penmount_seq - 1) || path_changed) {
+		if (driver->debug)
+		    xf86Msg(X_INFO, "penmount brain: [hotplug-debug] reactivating on %s\n", info->dev);
 		device->device = xstrdup(info->dev);
 		device->phys = xstrdup(info->phys);
 		device->callback(device->pInfo->dev, DEVICE_ON);
+	    } else if (driver->debug) {
+		xf86Msg(X_INFO, "penmount brain: [hotplug-debug] still current, no action\n");
 	    }
 
 	    device->seen = penmount_seq;
@@ -245,6 +259,10 @@ penmountScanDevice (penmountDriverPtr driver, penmountDevInfoPtr info)
 	    return TRUE;
 	}
     }
+
+    if (driver->debug)
+	xf86Msg(X_INFO, "penmount brain: [hotplug-debug] new device: id=%04x:%04x name=\"%s\" path=%s\n",
+		info->id.vendor, info->id.product, info->name, info->dev);
 
     device = Xcalloc (sizeof (penmountDeviceRec));
 
@@ -322,6 +340,12 @@ penmountRescanDevices (InputInfoPtr pInfo)
     for (driver = penmount_drivers; driver; driver = driver->next)
 	for (device = driver->devices; device; device = device->next)
 	    if (device->seen == (penmount_seq - 1)) {
+		if (driver->debug)
+		    xf86Msg(X_INFO, "penmount brain: [hotplug-debug] \"%s\" (path=%s) not seen "
+			    "this scan -- marking OFF\n",
+			    device->name ? device->name : "(unknown)",
+			    device->device ? device->device : "(none)");
+
 		device->callback(device->pInfo->dev, DEVICE_OFF);
 
 		if (device->device)

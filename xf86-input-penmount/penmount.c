@@ -71,6 +71,7 @@
 
 
 #include <xf86_OSproc.h>
+#include <os.h>
 
 /*
  * FIXME: This should most definitely not be here.
@@ -135,6 +136,27 @@ static void
 PenmountSigioReadInput (int fd, void *data)
 {
     PenmountReadInput ((InputInfoPtr) data);
+}
+
+/*
+ * Workaround for a kernel evdev_disconnect()/evdev_release() race seen on
+ * some old (~2.6.21-era) kernels: evdev_disconnect(), run from khubd on a
+ * physical USB disconnect, walks evdev->list with no locking; if close()
+ * on this fd (which runs evdev_release(), also touching evdev->list)
+ * happens to execute concurrently, the kernel Oopses on a poisoned list
+ * pointer. Deferring the close by a short delay (see the CloseDelay
+ * option in PenmountCorePreInit()) gives evdev_disconnect() time to
+ * finish first. The fd is captured by value in `arg` -- by the time this
+ * fires, pInfo->fd may already refer to a different, freshly reopened
+ * device, so this must never touch pInfo directly.
+ */
+static CARD32
+PenmountDeferredClose (OsTimerPtr timer, CARD32 now, pointer arg)
+{
+    int fd = (int)(long) arg;
+
+    close (fd);
+    return 0;
 }
 
 static int
@@ -211,7 +233,22 @@ PenmountProc(DeviceIntPtr device, int what)
 
 	    RemoveEnabledDevice (pInfo->fd);
 	    xf86RemoveSIGIOHandler (pInfo->fd);
-	    close (pInfo->fd);
+
+	    if (pPenmount->close_delay == 0) {
+		close (pInfo->fd);
+	    } else if (pPenmount->close_delay < 0) {
+		xf86Msg(X_INFO, "%s: CloseDelay<0: leaking fd %d instead of "
+			"closing it (evdev_disconnect() race workaround).\n",
+			pInfo->name, pInfo->fd);
+	    } else {
+		xf86Msg(X_INFO, "%s: Deferring close of fd %d by %d ms "
+			"(evdev_disconnect() race workaround).\n",
+			pInfo->name, pInfo->fd, pPenmount->close_delay);
+		pPenmount->close_timer = TimerSet(
+			(OsTimerPtr) pPenmount->close_timer, 0,
+			pPenmount->close_delay, PenmountDeferredClose,
+			(pointer)(long) pInfo->fd);
+	    }
 	    pInfo->fd = -1;
 
 	    if (pPenmount->state.axes)
@@ -292,6 +329,8 @@ PenmountNew(penmountDriverPtr driver, penmountDevicePtr device)
     device->pInfo = pInfo;
     device->debug = driver->debug;
     device->calib.debug = driver->debug;
+    device->close_delay = driver->close_delay;
+    device->close_timer = NULL;
 
     xf86CollectInputOptions(pInfo, NULL, NULL);
     xf86ProcessCommonOptions(pInfo, pInfo->options);
@@ -460,6 +499,23 @@ PenmountCorePreInit(InputDriverPtr drv, IDevPtr dev, int flags)
     pPenmount->debug = xf86SetBoolOption(dev->commonOptions, "Debug", FALSE);
     if (pPenmount->debug)
 	xf86Msg(X_CONFIG, "%s: Debug logging enabled.\n", dev->identifier);
+
+    /*
+     * Workaround for a kernel evdev_disconnect()/evdev_release() race
+     * (see PenmountDeferredClose() and PenmountProc()'s DEVICE_OFF case):
+     *   0   (default) -- close() the fd immediately, original behavior.
+     *   -1  -- never close() the fd; deliberately leaked so it can never
+     *          race with the kernel's own disconnect teardown. Only a
+     *          last-resort mitigation -- fds (and kernel memory) pile up
+     *          on every real disconnect, so this is not safe to leave on
+     *          for the long term on a system that disconnects often.
+     *   >0  -- defer the close() by this many milliseconds, giving the
+     *          kernel's own evdev_disconnect() time to finish first
+     *          without leaking forever.
+     */
+    pPenmount->close_delay = xf86SetIntOption(dev->commonOptions, "CloseDelay", 0);
+    if (pPenmount->close_delay != 0)
+	xf86Msg(X_CONFIG, "%s: CloseDelay: %d.\n", dev->identifier, pPenmount->close_delay);
 
     pPenmount->callback = PenmountNew;
 

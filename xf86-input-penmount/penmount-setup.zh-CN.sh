@@ -153,6 +153,7 @@ edit_conf_install() {
             printf("\tOption\t\t\"vendor\"\t\"%s\"\n", vendor)
             printf("\tOption\t\t\"product\"\t\"%s\"\n", product)
             printf("\tOption\t\t\"Debug\"\t\t\"off\"\n")
+            printf("\tOption\t\t\"CloseDelay\"\t\"0\"\n")
             printf("EndSection\n")
         }
     }

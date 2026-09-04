@@ -246,6 +246,13 @@ typedef struct _penmountDevice {
 				 * production system doesn't get flooded with
 				 * per-touch-sample logging by default */
 
+    int			close_delay;	/* mirrors penmountDriverRec.close_delay;
+					 * see PenmountProc()'s DEVICE_OFF case */
+    void		*close_timer;	/* actually an OsTimerPtr (kept as void*
+					 * so this header doesn't need <os.h>);
+					 * the pending deferred-close timer when
+					 * close_delay > 0, else unused */
+
     struct _penmountDevice *next;
 } penmountDeviceRec, *penmountDevicePtr;
 
@@ -264,6 +271,19 @@ typedef struct _penmountDriver {
     Bool		debug;	/* parsed once from Option "Debug" in
 				 * PenmountCorePreInit(), copied into each
 				 * matched penmountDeviceRec by PenmountNew() */
+
+    int			close_delay;	/* parsed once from Option "CloseDelay"
+					 * in PenmountCorePreInit(), copied into
+					 * each matched penmountDeviceRec by
+					 * PenmountNew(). Workaround for a kernel
+					 * evdev_disconnect()/evdev_release()
+					 * race on some old kernels: 0 = close()
+					 * immediately (default, original
+					 * behavior); <0 = never close() (leaks
+					 * the fd, last-resort mitigation); >0 =
+					 * defer the close() by this many ms via
+					 * a timer. See PenmountProc()'s
+					 * DEVICE_OFF case in penmount.c. */
 
     InputDriverPtr	drv;
     IDevPtr		dev;

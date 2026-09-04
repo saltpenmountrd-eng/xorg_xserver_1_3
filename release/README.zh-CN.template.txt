@@ -87,6 +87,7 @@ PenMount USB 触摸屏 Xorg 驱动套件
                Option          "vendor"        "0x14e1"
                Option          "product"       "0x6000"
                Option          "Debug"         "off"
+               Option          "CloseDelay"    "0"
        EndSection
 
   各项设置的意思:
@@ -102,6 +103,10 @@ PenMount USB 触摸屏 Xorg 驱动套件
        Debug        除错开关,预设 "off";如需要在 Xorg 的 log 文件中
                     查看详细的触摸座标除错信息,可改成 "on"(详见第七节
                     「疑难排解」),排查完毕请记得改回 "off"
+       CloseDelay   触摸屏断线时,驱动关闭装置文件的时机,预设 "0"
+                    (立即关闭);详见第七节「疑难排解」里关于内核
+                    evdev_disconnect() 崩溃问题的说明,一般情况下不需要
+                    调整这个选项
 
   ServerLayout 区段里的那一行,则是告诉 Xorg 要把上面这个 PenMount
   InputDevice 一并启用,两者缺一不可。
@@ -197,3 +202,28 @@ PenMount USB 触摸屏 Xorg 驱动套件
     / "new ... USB device" 字样),但重新接上后触摸功能却没有恢复,
     开启 Debug 后重现一次问题,把这段期间的 Xorg.0.log 提供出来,
     有助于确认是驱动没有正确侦测到装置回来,还是其他原因。
+
+  - 如果触摸屏 USB 排线接触不良、在使用中(例如校准时反复用力按压)
+    偶尔真的断线,极少数情况下曾观察到系统直接当机、dmesg 出现
+    "BUG: unable to handle kernel paging request" 之类的内核崩溃信息,
+    且事后重启 X 也无法恢复,必须重开机。这是特定内核版本
+    evdev_disconnect()(处理 USB 拔除的内核程序)本身缺乏锁保护、跟
+    驱动呼叫 close() 关闭装置文件时机相撞所导致的已知类型内核问题,
+    不是本驱动的逻辑错误,但驱动的 close() 时机会影响撞上这个问题的
+    机率。可以透过 CloseDelay 这个选项调整:
+
+         Option "CloseDelay" "0"      (预设:立即关闭,原本的行为)
+         Option "CloseDelay" "300"    (延迟 300 毫秒才真正关闭,
+                                        数字可自行调整,单位毫秒)
+         Option "CloseDelay" "-1"     (完全不关闭,直接放弃该文件
+                                        描述符——仅建议在确认上述内核
+                                        崩溃问题、且没有更好办法时,
+                                        当作最后手段使用)
+
+    设成正数,可以让内核自己处理断线的程序先跑完,再由驱动关闭装置
+    文件,降低两边同时存取内核内部资料结构而互撞的机率;设成 -1 则
+    是完全不关闭,代价是每次断线都会占用一个文件描述符(以及对应的
+    内核内存)不会释放,长期、频繁断线的机器不建议长期使用 -1,较
+    适合当作暂时的应急设置。这个问题真正的修法应该是从内核/BSP 那一
+    层替 evdev_disconnect() 加上适当的锁保护,CloseDelay 只是在驱动
+    这一层能做的缓解措施。

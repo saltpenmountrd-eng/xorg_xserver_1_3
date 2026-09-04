@@ -481,6 +481,7 @@ pm_compute_and_save (void)
     pm_signal_calib_ok ();
 
     ctx.finished = TRUE;
+    fprintf (stderr, "[pm_calibrate] [debug] calibration finished, calling gtk_main_quit()\n");
     gtk_main_quit ();
 }
 
@@ -625,10 +626,18 @@ main (int argc, char **argv)
         return 1;
     }
 
+    fprintf (stderr, "[pm_calibrate] [debug] gtk_main() entered\n");
     gtk_main ();
+    fprintf (stderr, "[pm_calibrate] [debug] gtk_main() returned "
+             "(finished=%d, aborted=%d)\n", ctx.finished, ctx.aborted);
 
-    if (ctx.xdev)
+    if (ctx.xdev) {
+        fprintf (stderr, "[pm_calibrate] [debug] XCloseDevice() starting\n");
         XCloseDevice (ctx.dpy, ctx.xdev);
+        fprintf (stderr, "[pm_calibrate] [debug] XCloseDevice() returned\n");
+    } else {
+        fprintf (stderr, "[pm_calibrate] [debug] ctx.xdev is NULL, skipping XCloseDevice()\n");
+    }
 
     /*
      * Always clear CalibStart on the way out, success or abort alike --
@@ -639,6 +648,9 @@ main (int argc, char **argv)
 
     if (ctx.error)
         g_printerr ("pm_calibrate: %s\n", ctx.error);
+
+    fprintf (stderr, "[pm_calibrate] [debug] exiting normally with code %d\n",
+             ctx.finished ? 0 : 1);
 
     return ctx.finished ? 0 : 1;
 }

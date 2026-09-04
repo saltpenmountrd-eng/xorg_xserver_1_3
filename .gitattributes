@@ -1,0 +1,10 @@
+# Force LF line endings on checkout for text sources, regardless of the
+# cloning machine's core.autocrlf setting -- shell scripts in particular
+# break immediately with a "bad interpreter" error if their shebang line
+# picks up a trailing \r.
+*.sh    text eol=lf
+*.c     text eol=lf
+*.h     text eol=lf
+Makefile text eol=lf
+*.txt   text eol=lf
+*.md    text eol=lf

@@ -227,3 +227,22 @@ PenMount USB 触摸屏 Xorg 驱动套件
     适合当作暂时的应急设置。这个问题真正的修法应该是从内核/BSP 那一
     层替 evdev_disconnect() 加上适当的锁保护,CloseDelay 只是在驱动
     这一层能做的缓解措施。
+
+  - 如果要一次性把 Debug 和 CloseDelay 两项排查用选项都打开做完整
+    测试,可以直接把 xorg.conf 里 PenMount 的 InputDevice 区段换成:
+
+         Section "InputDevice"
+                 Identifier      "PenMount"
+                 Driver          "penmount"
+                 Option          "Device"        "/dev/input/event*"
+                 Option          "vendor"        "0x14e1"
+                 Option          "product"       "0x6000"
+                 Option          "Debug"         "on"
+                 Option          "CloseDelay"    "300"
+         EndSection
+
+    这份设置会同时输出 [calib-debug] / [hotplug-debug] 详细信息,并
+    把装置文件的关闭动作延迟 300 毫秒(数字仅供参考,可视实际情况
+    调整)。排查完毕后,请记得把 Debug 改回 "off"(避免 Xorg.0.log
+    持续增长),CloseDelay 视情况改回 "0",或在确认延迟关闭确实有
+    帮助、且客户希望长期保留时才继续使用非 0 的值。

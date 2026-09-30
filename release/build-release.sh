@@ -14,7 +14,12 @@
 #     Any build-machine-specific variables the driver Makefile reads
 #     (TARGET_XORGPATH, ARCH, OEM, ...) should already be exported in
 #     your shell before running this script -- they pass straight
-#     through to `make` as environment variables.
+#     through to `make` as environment variables. This includes the
+#     diagnostic PENMOUNT_CALIB_LIVE_RELOAD switch (see penmount.h /
+#     pm_calibrate.c): leave it unset for a normal release build, or run
+#       PENMOUNT_CALIB_LIVE_RELOAD=0 ./release/build-release.sh
+#     to build the workaround variant that disables the CalibOK
+#     live-reload path (diagnostic-only, not for normal releases).
 # (2) Copies penmount_drv.so and pm_calibrate into a fresh release
 #     staging directory.
 # (3) Copies the Simplified Chinese penmount-setup.sh into that

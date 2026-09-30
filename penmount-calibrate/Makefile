@@ -8,6 +8,14 @@ PKGS    := gtk+-2.0 x11 xi
 CFLAGS  += -Wall -O2 $(shell pkg-config --cflags $(PKGS))
 LDLIBS  += $(shell pkg-config --libs $(PKGS)) -lm
 
+# Diagnostic switch for the CalibOK live-reload workaround (see pm_calibrate.c
+# and the matching switch in ../xf86-input-penmount/penmount.h). Leave unset
+# for normal builds. To build the workaround variant:
+#   make clean && make PENMOUNT_CALIB_LIVE_RELOAD=0
+ifdef PENMOUNT_CALIB_LIVE_RELOAD
+CFLAGS  += -DPENMOUNT_CALIB_LIVE_RELOAD=$(PENMOUNT_CALIB_LIVE_RELOAD)
+endif
+
 TARGET  := pm_calibrate
 SRCS    := pm_calibrate.c
 

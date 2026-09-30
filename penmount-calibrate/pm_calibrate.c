@@ -53,6 +53,20 @@
 #define PM_MAX_K	5	/* 5x5 = 25 points, the largest grid supported */
 #define PM_MAX_POINTS	(PM_MAX_K * PM_MAX_K)
 
+/*
+ * Workaround switch for a suspected timing-sensitive issue where X's CPU
+ * pegs at 90%+ right after this program finishes calibrating (see also the
+ * matching PENMOUNT_CALIB_LIVE_RELOAD switch in the driver's penmount.h).
+ * When 0, this program no longer creates /etc/penmount/CalibOK, so the
+ * driver never live-reloads -- the operator has to restart X for the new
+ * calibration to take effect instead. Build with
+ * -DPENMOUNT_CALIB_LIVE_RELOAD=0 to test whether that avoids the CPU
+ * spike; leave at the default (1) for normal behavior.
+ */
+#ifndef PENMOUNT_CALIB_LIVE_RELOAD
+#define PENMOUNT_CALIB_LIVE_RELOAD 1
+#endif
+
 typedef struct {
     int		k;		/* grid size: 2, 3, 4 or 5 -> k*k points */
     int		point;		/* index of the point currently being shown */
@@ -214,6 +228,7 @@ pm_signal_calib_start (void)
     fprintf (stderr, "[pm_calibrate] [debug] created %s (fp=%p)\n", PM_CAL_START, (void *) fp);
 }
 
+#if PENMOUNT_CALIB_LIVE_RELOAD
 static void
 pm_signal_calib_ok (void)
 {
@@ -222,6 +237,7 @@ pm_signal_calib_ok (void)
         fclose (fp);
     fprintf (stderr, "[pm_calibrate] [debug] created %s (fp=%p)\n", PM_CAL_OK, (void *) fp);
 }
+#endif
 
 static void
 pm_clear_calib_start (void)
@@ -478,7 +494,23 @@ pm_compute_and_save (void)
         return;
     }
 
+#if PENMOUNT_CALIB_LIVE_RELOAD
     pm_signal_calib_ok ();
+#else
+    {
+        GtkWidget *dialog;
+
+        fprintf (stderr, "[pm_calibrate] [debug] PENMOUNT_CALIB_LIVE_RELOAD=0: "
+                 "skipping CalibOK, showing restart-X notice instead\n");
+
+        dialog = gtk_message_dialog_new (GTK_WINDOW (ctx.window),
+                GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "%s",
+                "Calibration saved. Restart X for the new calibration to take effect.\n"
+                "校准已保存,请重新启动 X 以套用新的校准数据。");
+        gtk_dialog_run (GTK_DIALOG (dialog));
+        gtk_widget_destroy (dialog);
+    }
+#endif
 
     ctx.finished = TRUE;
     fprintf (stderr, "[pm_calibrate] [debug] calibration finished, calling gtk_main_quit()\n");

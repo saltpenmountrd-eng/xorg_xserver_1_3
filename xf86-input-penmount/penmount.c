@@ -184,6 +184,15 @@ PenmountProc(DeviceIntPtr device, int what)
 	    xf86Msg(X_INFO, "%s: No valid calibration in %s, running uncalibrated.\n",
 		    pInfo->name, PM_CAL_FILE);
 
+#if PENMOUNT_CALIB_LIVE_RELOAD
+	xf86Msg(X_INFO, "%s: calibration live-reload ENABLED (CalibOK reloads "
+		"without restarting X).\n", pInfo->name);
+#else
+	xf86Msg(X_INFO, "%s: calibration live-reload DISABLED (workaround build) "
+		"-- restart X after calibrating for the new values to take effect.\n",
+		pInfo->name);
+#endif
+
 	xf86Msg(X_INFO, "%s: Init\n", pInfo->name);
 	break;
 

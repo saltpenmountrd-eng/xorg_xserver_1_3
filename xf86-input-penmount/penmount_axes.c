@@ -320,12 +320,14 @@ PenmountAxesAbsSynRep (InputInfoPtr pInfo)
 	 * applies below. penmountCalibCheckAndConsumeOK() deletes CalibOK
 	 * itself once consumed, so this only actually reloads once.
 	 */
+#if PENMOUNT_CALIB_LIVE_RELOAD
 	if (penmountCalibCheckAndConsumeOK (&pPenmount->calib) && pPenmount->debug)
 	    xf86Msg(X_INFO, "%s: [calib-debug] CalibOK consumed -> reloaded, valid=%d "
 		    "ax=%.6f ay=%.6f az=%.6f bx=%.6f by=%.6f bz=%.6f\n",
 		    pInfo->name, pPenmount->calib.valid,
 		    pPenmount->calib.ax, pPenmount->calib.ay, pPenmount->calib.az,
 		    pPenmount->calib.bx, pPenmount->calib.by, pPenmount->calib.bz);
+#endif
 
 	pmRawModeNow = penmountCalibCheckStart ();
 	if (pmRawModeNow != pmLastRawMode) {

@@ -1,0 +1,3 @@
+# build-release.sh outputs -- generated, never commit these
+penmount-release-*/
+penmount-release-*.tar.bz2

@@ -73,6 +73,8 @@
 #include <xf86_OSproc.h>
 #include <os.h>
 
+#undef xf86Msg
+
 void
 penmountMsg(MessageType type, const char *format, ...)
 {
@@ -96,8 +98,10 @@ penmountMsg(MessageType type, const char *format, ...)
     vsnprintf(buf, sizeof(buf), format, ap);
     va_end(ap);
 
-    (xf86Msg)(type, "%s%s", time_str, buf);
+    xf86Msg(type, "%s%s", time_str, buf);
 }
+
+#define xf86Msg penmountMsg
 
 /*
  * FIXME: This should most definitely not be here.

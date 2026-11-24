@@ -108,9 +108,9 @@ endif
 #CDEFINE    += -DPENMOUNT_FILELOG_ENABLE
 #endif
 
-# Diagnostic switch for the CalibOK live-reload workaround (see penmount.h).
-# Leave unset for normal builds (live-reload stays on). To build the
-# workaround variant: make clean && make PENMOUNT_CALIB_LIVE_RELOAD=0
+# Switch for the CalibOK live-reload (see penmount.h).
+# Default is 0 (disabled). Set PENMOUNT_CALIB_LIVE_RELOAD=1 to enable:
+#   make clean && make PENMOUNT_CALIB_LIVE_RELOAD=1
 ifdef PENMOUNT_CALIB_LIVE_RELOAD
 CDEFINE    += -DPENMOUNT_CALIB_LIVE_RELOAD=$(PENMOUNT_CALIB_LIVE_RELOAD)
 endif

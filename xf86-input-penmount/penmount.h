@@ -346,17 +346,15 @@ void PenmountKeyProcess (InputInfoPtr pInfo, struct input_event *ev);
 #include "penmount_calib_format.h"
 
 /*
- * Workaround switch for a suspected timing-sensitive issue where X's CPU
- * pegs at 90%+ right after pm_calibrate finishes calibrating (see also the
- * matching PENMOUNT_CALIB_LIVE_RELOAD switch in the sibling pm_calibrate.c).
- * When 0, the driver never checks for /etc/penmount/CalibOK and never
- * reloads the calibration file after DEVICE_INIT -- a freshly computed
- * calibration only takes effect after the next X restart. Build with
- * -DPENMOUNT_CALIB_LIVE_RELOAD=0 to test whether disabling the live-reload
- * path avoids the CPU spike; leave at the default (1) for normal behavior.
+ * Calibration live-reload switch (see also the matching switch in
+ * pm_calibrate.c). Default is 0 (disabled) to avoid touch-sync filesystem
+ * polling and high CPU usage on single-core / embedded platforms.
+ * When 0, the driver only reads the calibration file once at DEVICE_INIT
+ * (startup); a newly saved calibration takes effect upon restarting X.
+ * Set -DPENMOUNT_CALIB_LIVE_RELOAD=1 if live-reload without X restart is desired.
  */
 #ifndef PENMOUNT_CALIB_LIVE_RELOAD
-#define PENMOUNT_CALIB_LIVE_RELOAD 1
+#define PENMOUNT_CALIB_LIVE_RELOAD 0
 #endif
 
 Bool penmountCalibLoad (penmountCalibPtr calib);

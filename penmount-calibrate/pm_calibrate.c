@@ -54,17 +54,15 @@
 #define PM_MAX_POINTS	(PM_MAX_K * PM_MAX_K)
 
 /*
- * Workaround switch for a suspected timing-sensitive issue where X's CPU
- * pegs at 90%+ right after this program finishes calibrating (see also the
- * matching PENMOUNT_CALIB_LIVE_RELOAD switch in the driver's penmount.h).
- * When 0, this program no longer creates /etc/penmount/CalibOK, so the
- * driver never live-reloads -- the operator has to restart X for the new
- * calibration to take effect instead. Build with
- * -DPENMOUNT_CALIB_LIVE_RELOAD=0 to test whether that avoids the CPU
- * spike; leave at the default (1) for normal behavior.
+ * Calibration live-reload switch (see also the matching switch in
+ * the driver's penmount.h). Default is 0 (disabled) to avoid touch-sync
+ * filesystem polling and high CPU usage on single-core / embedded platforms.
+ * When 0, this program skips creating CalibOK and prompts the user to
+ * restart X for the new calibration to take effect.
+ * Set -DPENMOUNT_CALIB_LIVE_RELOAD=1 if live-reload without X restart is desired.
  */
 #ifndef PENMOUNT_CALIB_LIVE_RELOAD
-#define PENMOUNT_CALIB_LIVE_RELOAD 1
+#define PENMOUNT_CALIB_LIVE_RELOAD 0
 #endif
 
 typedef struct {

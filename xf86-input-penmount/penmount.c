@@ -89,11 +89,14 @@ PenmountReadInput(InputInfoPtr pInfo)
     while (xf86WaitForInput (pInfo->fd, 0) > 0) {
         len = read(pInfo->fd, &ev, sizeof(ev));
         if (len != sizeof(ev)) {
+	    if (len < 0 && (errno == EAGAIN || errno == EINTR))
+		break;
+
             /* The kernel promises that we always only read a complete
-             * event, so len != sizeof ev is an error. */
+             * event, so len != sizeof ev is an error (including len == 0 on EOF). */
             xf86Msg(X_ERROR, "Read error: %s (%d, %d != %ld)\n",
 		    strerror(errno), errno, len, sizeof (ev));
-	    if (len < 0) {
+	    if (len <= 0) {
 		penmountDevicePtr pPenmount = pInfo->private;
 		pPenmount->callback(pPenmount->pInfo->dev, DEVICE_OFF);
 		pPenmount->seen--;

@@ -366,7 +366,7 @@ penmountReadInput (InputInfoPtr pInfo)
     struct inotify_event *event;
 
     if (penmount_inotify) {
-	while ((len = read (pInfo->fd, buf, sizeof(buf))) >= 0) {
+	while ((len = read (pInfo->fd, buf, sizeof(buf))) > 0) {
 	    for (i = 0; i < len; i += sizeof (struct inotify_event) + event->len) {
 		event = (struct inotify_event *) &buf[i];
 		if (!event->len)

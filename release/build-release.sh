@@ -8,7 +8,7 @@
 #
 # (0) Version info: override any of these via environment variables
 #     before running, e.g.:
-#       DRIVER_VERSION=1.1.0 CALIBRATE_VERSION=1.0.2 ./release/build-release.sh
+#       DRIVER_VERSION=1.2.1 CALIBRATE_VERSION=1.0.2 ./release/build-release.sh
 #     or just edit the defaults below directly.
 # (1) make -C xf86-input-penmount and -C penmount-calibrate.
 #     Any build-machine-specific variables the driver Makefile reads
@@ -31,7 +31,7 @@
 set -eu
 
 # --- (0) version info --------------------------------------------------
-DRIVER_VERSION="${DRIVER_VERSION:-1.2.0}"
+DRIVER_VERSION="${DRIVER_VERSION:-1.2.1}"
 CALIBRATE_VERSION="${CALIBRATE_VERSION:-1.0.2}"
 PACKAGE_VERSION="${PACKAGE_VERSION:-$DRIVER_VERSION}"
 BUILD_DATE="$(date +%Y%m%d)"

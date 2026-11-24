@@ -8,17 +8,20 @@
 #
 # (0) Version info: override any of these via environment variables
 #     before running, e.g.:
-#       DRIVER_VERSION=1.2.1 CALIBRATE_VERSION=1.0.2 ./release/build-release.sh
+#       DRIVER_VERSION=1.2.1 CALIBRATE_VERSION=1.0.3 ./release/build-release.sh
 #     or just edit the defaults below directly.
 # (1) make -C xf86-input-penmount and -C penmount-calibrate.
 #     Any build-machine-specific variables the driver Makefile reads
 #     (TARGET_XORGPATH, ARCH, OEM, ...) should already be exported in
 #     your shell before running this script -- they pass straight
-#     through to `make` as environment variables. This includes the
-#     PENMOUNT_CALIB_LIVE_RELOAD switch (see penmount.h / pm_calibrate.c):
-#     defaults to 0 (disabled) to avoid touch-sync filesystem polling and
-#     high CPU usage; set PENMOUNT_CALIB_LIVE_RELOAD=1 if live-reload without
-#     X restart is explicitly desired.
+#     through to `make` as environment variables. This includes:
+#     - PENMOUNT_CALIB_LIVE_RELOAD switch (see penmount.h / pm_calibrate.c):
+#       defaults to 0 (disabled) to avoid touch-sync filesystem polling and
+#       high CPU usage; set PENMOUNT_CALIB_LIVE_RELOAD=1 if live-reload without
+#       X restart is explicitly desired.
+#     - PENMOUNT_CALIB_POPUP_MESSAGEBOX switch (see pm_calibrate.c / Makefile):
+#       defaults to 0 (prints restart-X notice to terminal); set
+#       PENMOUNT_CALIB_POPUP_MESSAGEBOX=1 if a GUI modal messagebox dialog is desired.
 # (2) Copies penmount_drv.so and pm_calibrate into a fresh release
 #     staging directory.
 # (3) Copies the Simplified Chinese penmount-setup.sh into that
@@ -32,7 +35,7 @@ set -eu
 
 # --- (0) version info --------------------------------------------------
 DRIVER_VERSION="${DRIVER_VERSION:-1.2.1}"
-CALIBRATE_VERSION="${CALIBRATE_VERSION:-1.0.2}"
+CALIBRATE_VERSION="${CALIBRATE_VERSION:-1.0.3}"
 PACKAGE_VERSION="${PACKAGE_VERSION:-$DRIVER_VERSION}"
 BUILD_DATE="$(date +%Y%m%d)"
 

@@ -15,6 +15,13 @@ ifdef PENMOUNT_CALIB_LIVE_RELOAD
 CFLAGS  += -DPENMOUNT_CALIB_LIVE_RELOAD=$(PENMOUNT_CALIB_LIVE_RELOAD)
 endif
 
+# Switch for restart-X notice method (GUI messagebox popup vs terminal text).
+# Default is terminal text. Set PENMOUNT_CALIB_POPUP_MESSAGEBOX=1 to enable GUI messagebox popup:
+#   make clean && make PENMOUNT_CALIB_POPUP_MESSAGEBOX=1
+ifeq ($(PENMOUNT_CALIB_POPUP_MESSAGEBOX),1)
+CFLAGS  += -DPENMOUNT_CALIB_POPUP_MESSAGEBOX=1
+endif
+
 TARGET  := pm_calibrate
 SRCS    := pm_calibrate.c
 

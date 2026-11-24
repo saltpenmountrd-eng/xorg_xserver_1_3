@@ -522,19 +522,32 @@ pm_compute_and_save (void)
 #if PENMOUNT_CALIB_LIVE_RELOAD
     pm_signal_calib_ok ();
 #else
+#ifdef PENMOUNT_CALIB_POPUP_MESSAGEBOX
     {
         GtkWidget *dialog;
 
         pm_debug ("PENMOUNT_CALIB_LIVE_RELOAD=0: "
-                 "skipping CalibOK, showing restart-X notice instead\n");
+                 "skipping CalibOK, showing restart-X notice via GUI messagebox\n");
 
         dialog = gtk_message_dialog_new (GTK_WINDOW (ctx.window),
                 GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "%s",
                 "Calibration saved. Restart X for the new calibration to take effect.\n"
-                "校准已保存,请重新启动 X 以套用新的校准数据。");
+                "校准已保存，请重新启动 X 以应用新的校准数据。");
         gtk_dialog_run (GTK_DIALOG (dialog));
         gtk_widget_destroy (dialog);
     }
+#else
+    {
+        pm_debug ("PENMOUNT_CALIB_LIVE_RELOAD=0: "
+                 "skipping CalibOK, showing restart-X notice in terminal\n");
+
+        g_print ("\n"
+                 "====================================================================\n"
+                 "Calibration saved. Restart X for the new calibration to take effect.\n"
+                 "校准已保存，请重新启动 X 以应用新的校准数据。\n"
+                 "====================================================================\n\n");
+    }
+#endif
 #endif
 
     ctx.finished = TRUE;

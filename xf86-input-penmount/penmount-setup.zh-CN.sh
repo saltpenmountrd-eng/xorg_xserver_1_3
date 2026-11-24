@@ -417,6 +417,7 @@ cmd_install() {
 
     backup_conf
     edit_conf_install
+    rm -f /etc/penmount/CalibOK /etc/penmount/CalibStart
     echo "已更新 $XORG_CONF"
 
     echo
@@ -428,6 +429,7 @@ cmd_uninstall() {
 
     backup_conf
     edit_conf_uninstall
+    rm -f /etc/penmount/CalibOK /etc/penmount/CalibStart
     echo "已从 $XORG_CONF 移除 PenMount 配置"
 
     if moddir="$(find_module_dir)" && [ -f "${moddir}/${DRV_SO_NAME}" ]; then

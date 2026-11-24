@@ -522,6 +522,7 @@ pm_compute_and_save (void)
 #if PENMOUNT_CALIB_LIVE_RELOAD
     pm_signal_calib_ok ();
 #else
+    unlink (PM_CAL_OK);
 #ifdef PENMOUNT_CALIB_POPUP_MESSAGEBOX
     {
         GtkWidget *dialog;

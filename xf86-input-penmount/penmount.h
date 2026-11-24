@@ -368,6 +368,8 @@ void PenmountKeyProcess (InputInfoPtr pInfo, struct input_event *ev);
 
 Bool penmountCalibLoad (penmountCalibPtr calib);
 Bool penmountCalibCheckStart (void);
+#if PENMOUNT_CALIB_LIVE_RELOAD
 Bool penmountCalibCheckAndConsumeOK (penmountCalibPtr calib);
+#endif
 
 #endif	/* LNX_PENMOUNT_H_ */

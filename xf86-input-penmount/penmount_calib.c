@@ -99,6 +99,7 @@ penmountCalibCheckStart (void)
     return access (PM_CAL_START, F_OK) == 0;
 }
 
+#if PENMOUNT_CALIB_LIVE_RELOAD
 /*
  * If /etc/penmount/CalibOK exists, reload the calibration file and delete
  * the flag file so it is only ever consumed once. Returns TRUE if a reload
@@ -116,3 +117,4 @@ penmountCalibCheckAndConsumeOK (penmountCalibPtr calib)
 
     return TRUE;
 }
+#endif

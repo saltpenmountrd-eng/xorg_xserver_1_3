@@ -18,6 +18,7 @@ PenMount USB 触摸屏 Xorg 驱动套件
                        与 xorg-server 1.3.0.0 的 XInput ABI 兼容)
   pm_calibrate         GTK2 图形化触摸屏校准程序
   penmount-setup.sh    安装/卸载脚本(本文件即为其简体中文说明)
+  config.ini           驱动安装配置参数预设文件(可选)
   README.txt           本说明文件
 
 
@@ -47,11 +48,14 @@ PenMount USB 触摸屏 Xorg 驱动套件
      这个脚本会自动完成:
        - 把 penmount_drv.so 复制到 Xorg 的 input 模块目录
          (/usr/lib/xorg/modules/input 或 /usr/lib64/xorg/modules/input)
+       - 自动扫描系统中的输入设备,枚举出第一个连接的 PenMount 触摸屏
+         (VID 0x14e1) 并自动获取其 PID (如 0x6000 或 0x6005)
+       - 读取同目录下的 config.ini (若存在),支持预设 Debug、CloseDelay、
+         product (PID) 等参数
        - 在 /etc/X11/xorg.conf 的 ServerLayout 区段加入(或取消注释)
          PenMount 这一行 InputDevice 设置
-       - 在 /etc/X11/xorg.conf 加入 PenMount 的 InputDevice 区段
-         (Driver "penmount",并预设锁定 vendor 0x14e1 / product 0x6000,
-         Debug 选项预设为 "off")
+       - 在 /etc/X11/xorg.conf 加入(或更新) PenMount 的 InputDevice 区段
+         (Driver "penmount",填入检测到的 PID 或预设值,设置 Debug 与 CloseDelay)
 
      每次修改 xorg.conf 前都会自动备份一份带时间戳的原始文件,備份檔
      跟 xorg.conf 放在同一目录下。

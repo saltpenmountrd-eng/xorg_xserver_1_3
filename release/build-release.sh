@@ -74,9 +74,12 @@ mkdir -p "$STAGE_DIR"
 cp -p "$DRIVER_DIR/penmount_drv.so" "$STAGE_DIR/"
 cp -p "$CALIB_DIR/pm_calibrate" "$STAGE_DIR/"
 
-# --- (3) Simplified Chinese install/uninstall script ---------------------
+# --- (3) Simplified Chinese install/uninstall script and config.ini ---
 cp -p "$DRIVER_DIR/penmount-setup.zh-CN.sh" "$STAGE_DIR/penmount-setup.sh"
 chmod +x "$STAGE_DIR/penmount-setup.sh"
+if [ -f "$DRIVER_DIR/config.ini" ]; then
+    cp -p "$DRIVER_DIR/config.ini" "$STAGE_DIR/config.ini"
+fi
 
 # --- (4) Simplified Chinese README, placeholders filled in ---------------
 sed \

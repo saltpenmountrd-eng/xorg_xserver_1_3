@@ -73,6 +73,32 @@
 #include <xf86_OSproc.h>
 #include <os.h>
 
+void
+penmountMsg(MessageType type, const char *format, ...)
+{
+    char buf[2048];
+    char time_str[32];
+    struct timeval tv;
+    struct tm *tm;
+    va_list ap;
+
+    gettimeofday(&tv, NULL);
+    tm = localtime(&tv.tv_sec);
+    if (tm) {
+        snprintf(time_str, sizeof(time_str), "[%02d:%02d:%02d.%03ld] ",
+                 tm->tm_hour, tm->tm_min, tm->tm_sec, (long)(tv.tv_usec / 1000));
+    } else {
+        snprintf(time_str, sizeof(time_str), "[%ld.%03ld] ",
+                 (long)tv.tv_sec, (long)(tv.tv_usec / 1000));
+    }
+
+    va_start(ap, format);
+    vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+
+    (xf86Msg)(type, "%s%s", time_str, buf);
+}
+
 /*
  * FIXME: This should most definitely not be here.
  * But I need it, even if it _is_ private.

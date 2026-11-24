@@ -82,6 +82,11 @@
 #include <xf86Xinput.h>
 #include <mipointer.h>
 #include <xf86_OSproc.h>
+#include <sys/time.h>
+#include <time.h>
+
+void penmountMsg(MessageType type, const char *format, ...) _printf_attribute(2,3);
+#define xf86Msg penmountMsg
 
 #ifndef BITS_PER_LONG
 #define BITS_PER_LONG		(sizeof(unsigned long) * 8)
